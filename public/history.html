@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment History</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .nav { display: flex; justify-content: space-between; align-items: center; max-width: 900px; margin: 0 auto 20px; padding: 0 10px; }
+        .nav-links { display: flex; gap: 15px; }
+        .nav a { color: white; text-decoration: none; padding: 8px 16px; border-radius: 20px; background: rgba(255,255,255,0.2); transition: all 0.3s; font-size: 14px; }
+        .nav a:hover, .nav a.active { background: white; color: #667eea; }
+        .user-info { color: white; font-size: 13px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: #333; font-size: 28px; }
+        .header p { color: #666; font-size: 14px; margin-top: 5px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; color: white; text-align: center; }
+        .stat-box .number { font-size: 32px; font-weight: 700; }
+        .stat-box .label { font-size: 14px; opacity: 0.9; margin-top: 5px; }
+        .table-container { overflow-x: auto; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8f9fa; padding: 12px; text-align: left; font-size: 13px; color: #666; font-weight: 600; border-bottom: 2px solid #e0e0e0; }
+        td { padding: 15px 12px; border-bottom: 1px solid #f0f0f0; font-size: 13px; color: #333; }
+        tr:hover { background: #f8f9fa; }
+        .status { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.refunded { background: #fff3cd; color: #856404; }
+        .btn-sm { padding: 6px 12px; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.3s; }
+        .btn-refund { background: #ff9800; color: white; }
+        .btn-refund:hover { background: #f57c00; }
+        .btn-refund:disabled { opacity: 0.5; cursor: not-allowed; }
+        .empty { text-align: center; padding: 60px 20px; color: #999; }
+        .empty i { font-size: 48px; margin-bottom: 15px; color: #ddd; }
+        .refresh-btn { float: right; padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .refresh-btn:hover { background: #5a6fd6; }
+        .message { padding: 12px; border-radius: 8px; margin-bottom: 20px; display: none; }
+        .message.show { display: block; }
+        .message.ok { background: #d4edda; color: #155724; }
+        .message.fail { background: #f8d7da; color: #721c24; }
+        .logout-btn { background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; transition: all 0.3s; }
+        .logout-btn:hover { background: white; color: #667eea; }
+    </style>
+</head>
+<body>
+
+<div class="nav">
+    <div class="nav-links">
+        <a href="/">Login</a>
+        <a href="payment.html">Payment</a>
+        <a href="history.html" class="active">History</a>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span class="user-info" id="userName"></span>
+        <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="header">
+        <h1><i class="fas fa-history" style="color: #667eea;"></i> Payment History</h1>
+        <p>View all transactions and process refunds</p>
+        <button class="refresh-btn" onclick="loadPayments()">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+
+    <div class="stats">
+        <div class="stat-box">
+            <div class="number" id="totalPayments">0</div>
+            <div class="label">Total Payments</div>
+        </div>
+        <div class="stat-box">
+            <div class="number" id="totalAmount">₹0</div>
+            <div class="label">Total Amount</div>
+        </div>
+        <div class="stat-box">
+            <div class="number" id="totalRefunds">0</div>
+            <div class="label">Refunds</div>
+        </div>
+        <div class="stat-box">
+            <div class="number" id="successRate">0%</div>
+            <div class="label">Success Rate</div>
+        </div>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Payment ID</th>
+                    <th>Customer</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="paymentsTable">
+                <tr>
+                    <td colspan="6" class="empty">
+                        <i class="fas fa-inbox"></i>
+                        <p>No payments yet. Make your first payment!</p>
+                        <a href="payment.html" style="color: #667eea; text-decoration: none;">Go to Payment Page →</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Check auth
+    fetch('/api/me')
+        .then(r => r.json())
+        .then(d => {
+            if (d.success && d.user) {
+                document.getElementById('userName').textContent = '👤 ' + d.user.name;
+            }
+        });
+
+    function showMessage(text, type) {
+        const msg = document.getElementById('message');
+        msg.className = 'message show ' + type;
+        msg.textContent = text;
+        setTimeout(() => msg.className = 'message', 3000);
+    }
+
+    async function loadPayments() {
+        try {
+            const response = await fetch('/api/payments');
+            const data = await response.json();
+
+            if (data.success && data.payments.length > 0) {
+                updateStats(data.payments);
+                renderTable(data.payments);
+            } else {
+                document.getElementById('paymentsTable').innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty">
+                            <i class="fas fa-inbox"></i>
+                            <p>No payments yet. Make your first payment!</p>
+                            <a href="payment.html" style="color: #667eea; text-decoration: none;">Go to Payment Page →</a>
+                        </td>
+                    </tr>
+                `;
+                updateStats([]);
+            }
+        } catch (err) {
+            console.error('Failed to load payments:', err);
+        }
+    }
+
+    function updateStats(payments) {
+        const total = payments.length;
+        const amount = payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+        const refunds = payments.filter(p => p.status === 'refunded').length;
+        const success = payments.filter(p => p.status === 'success').length;
+        const rate = total > 0 ? Math.round((success / total) * 100) : 0;
+
+        document.getElementById('totalPayments').textContent = total;
+        document.getElementById('totalAmount').textContent = '₹' + amount.toFixed(2);
+        document.getElementById('totalRefunds').textContent = refunds;
+        document.getElementById('successRate').textContent = rate + '%';
+    }
+
+    function renderTable(payments) {
+        const tbody = document.getElementById('paymentsTable');
+        tbody.innerHTML = payments.map(p => `
+            <tr>
+                <td>${new Date(p.timestamp).toLocaleString()}</td>
+                <td><code style="background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${p.paymentId}</code></td>
+                <td>
+                    <div style="font-weight: 600;">${p.customer?.name || 'N/A'}</div>
+                    <div style="font-size: 11px; color: #999;">${p.customer?.email || ''}</div>
+                </td>
+                <td style="font-weight: 600;">₹${p.amount} ${p.currency}</td>
+                <td><span class="status ${p.status}">${p.status.toUpperCase()}</span></td>
+                <td>
+                    ${p.status === 'success' ? 
+                        `<button class="btn-sm btn-refund" onclick="processRefund('${p.paymentId}', ${p.amount})">
+                            <i class="fas fa-undo"></i> Refund
+                        </button>` : 
+                        '<span style="color: #999; font-size: 12px;">—</span>'
+                    }
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function processRefund(paymentId, amount) {
+        if (!confirm('Are you sure you want to refund ₹' + amount + '?')) return;
+
+        try {
+            const response = await fetch('/api/refund', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId, amount })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showMessage('✅ Refund processed successfully!', 'ok');
+                loadPayments();
+            } else {
+                showMessage('❌ Refund failed: ' + data.error, 'fail');
+            }
+        } catch (err) {
+            showMessage('❌ Error: ' + err.message, 'fail');
+        }
+    }
+
+    async function logout() {
+        await fetch('/api/logout', { method: 'POST' });
+        window.location.href = '/';
+    }
+
+    // Load on page load
+    loadPayments();
+
+    // Auto-refresh every 10 seconds
+    setInterval(loadPayments, 10000);
+</script>
+
+</body>
+</html>

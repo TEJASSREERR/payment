@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment - Razorpay</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .nav { display: flex; justify-content: space-between; align-items: center; max-width: 500px; margin: 0 auto 20px; padding: 0 10px; }
+        .nav-links { display: flex; gap: 15px; }
+        .nav a { color: white; text-decoration: none; padding: 8px 16px; border-radius: 20px; background: rgba(255,255,255,0.2); transition: all 0.3s; font-size: 14px; }
+        .nav a:hover, .nav a.active { background: white; color: #667eea; }
+        .user-info { color: white; font-size: 13px; }
+        .container { max-width: 500px; margin: 0 auto; background: white; border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: #333; font-size: 26px; }
+        .header p { color: #666; font-size: 14px; margin-top: 5px; }
+        .badge { display: inline-block; background: #fff3cd; color: #856404; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 10px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 6px; color: #333; font-weight: 500; font-size: 14px; }
+        .form-group input { width: 100%; padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 16px; transition: all 0.3s; outline: none; }
+        .form-group input:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .amount-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 15px; text-align: center; margin-bottom: 25px; color: white; }
+        .amount-box .label { font-size: 14px; opacity: 0.9; }
+        .amount-box .value { font-size: 42px; font-weight: 700; margin-top: 5px; }
+        .methods { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .method { flex: 1; min-width: 100px; padding: 15px; border: 2px solid #e0e0e0; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.3s; font-size: 13px; }
+        .method:hover, .method.active { border-color: #667eea; background: #f0f3ff; color: #667eea; }
+        .method i { font-size: 24px; margin-bottom: 5px; display: block; }
+        .btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .spinner { display: none; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .result { margin-top: 20px; padding: 20px; border-radius: 12px; display: none; animation: fadeIn 0.4s ease; }
+        .result.show { display: block; }
+        .result.ok { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .result.fail { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .result h3 { margin-bottom: 10px; font-size: 18px; }
+        .result p { margin-bottom: 6px; word-break: break-all; font-size: 13px; }
+        .info { margin-top: 25px; padding: 15px; background: #e3f2fd; border-radius: 10px; border-left: 4px solid #2196f3; }
+        .info h4 { color: #1565c0; font-size: 14px; margin-bottom: 10px; }
+        .info ul { list-style: none; padding: 0; }
+        .info li { color: #424242; font-size: 12px; padding: 4px 0; padding-left: 20px; position: relative; }
+        .info li::before { content: "✓"; position: absolute; left: 0; color: #4caf50; font-weight: bold; }
+        .logout-btn { background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; transition: all 0.3s; }
+        .logout-btn:hover { background: white; color: #667eea; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="nav">
+    <div class="nav-links">
+        <a href="/">Login</a>
+        <a href="payment.html" class="active">Payment</a>
+        <a href="history.html">History</a>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span class="user-info" id="userName"></span>
+        <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="header">
+        <h1><i class="fas fa-shield-alt" style="color: #667eea;"></i> Secure Payment</h1>
+        <p>Complete payment solution with Razorpay</p>
+        <div class="badge">🧪 TEST MODE — No Real Money</div>
+    </div>
+
+    <div class="form-group">
+        <label><i class="fas fa-user"></i> Full Name</label>
+        <input type="text" id="name" value="Test User">
+    </div>
+
+    <div class="form-group">
+        <label><i class="fas fa-envelope"></i> Email</label>
+        <input type="email" id="email" value="test@example.com">
+    </div>
+
+    <div class="form-group">
+        <label><i class="fas fa-phone"></i> Phone</label>
+        <input type="tel" id="phone" value="9999999999">
+    </div>
+
+    <div class="form-group">
+        <label><i class="fas fa-rupee-sign"></i> Amount (₹)</label>
+        <input type="number" id="amount" value="100" min="1">
+    </div>
+
+    <div class="amount-box">
+        <div class="label">Total Amount</div>
+        <div class="value">₹<span id="display">100</span></div>
+    </div>
+
+    <div class="methods">
+        <div class="method active" onclick="selectMethod(this, 'card')">
+            <i class="fas fa-credit-card"></i> Card
+        </div>
+        <div class="method" onclick="selectMethod(this, 'upi')">
+            <i class="fas fa-mobile-alt"></i> UPI
+        </div>
+        <div class="method" onclick="selectMethod(this, 'netbanking')">
+            <i class="fas fa-university"></i> Net Banking
+        </div>
+        <div class="method" onclick="selectMethod(this, 'wallet')">
+            <i class="fas fa-wallet"></i> Wallet
+        </div>
+    </div>
+
+    <button class="btn" id="btn" onclick="pay()">
+        <span class="spinner" id="spin"></span>
+        <span id="btnText"><i class="fas fa-lock"></i> Pay Securely</span>
+    </button>
+
+    <div id="result" class="result"></div>
+
+    <div class="info">
+        <h4><i class="fas fa-info-circle"></i> Test Credentials</h4>
+        <ul>
+            <li><strong>Card:</strong> 4111 1111 1111 1111 | Expiry: 12/30 | CVV: 123</li>
+            <li><strong>UPI:</strong> success@razorpay (success) / failure@razorpay (fail)</li>
+            <li><strong>Net Banking:</strong> Select any bank → click Success</li>
+            <li><strong>Wallet:</strong> Select any wallet → click Success</li>
+            <li><strong>No OTP required</strong> in Test Mode</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    let selectedMethod = 'card';
+    let currentUser = null;
+
+    // Check auth
+    fetch('/api/me')
+        .then(r => r.json())
+        .then(d => {
+            if (d.success && d.user) {
+                currentUser = d.user;
+                document.getElementById('userName').textContent = '👤 ' + d.user.name;
+                document.getElementById('name').value = d.user.name;
+                document.getElementById('email').value = d.user.email;
+            }
+        });
+
+    function selectMethod(el, method) {
+        document.querySelectorAll('.method').forEach(m => m.classList.remove('active'));
+        el.classList.add('active');
+        selectedMethod = method;
+    }
+
+    document.getElementById('amount').addEventListener('input', function() {
+        document.getElementById('display').textContent = this.value || '0';
+    });
+
+    function show(type, title, html) {
+        const r = document.getElementById('result');
+        r.className = 'result show ' + (type === 'ok' ? 'ok' : 'fail');
+        r.innerHTML = '<h3>' + (type === 'ok' ? '✅ ' : '❌ ') + title + '</h3>' + html;
+    }
+
+    function setLoading(on) {
+        const btn = document.getElementById('btn');
+        btn.disabled = on;
+        document.getElementById('spin').style.display = on ? 'inline-block' : 'none';
+        document.getElementById('btnText').innerHTML = on ? 'Processing...' : '<i class="fas fa-lock"></i> Pay Securely';
+    }
+
+    async function pay() {
+        const amount = parseInt(document.getElementById('amount').value);
+        const name = document.getElementById('name').value;
+        const email = document.getElementById('email').value;
+        const phone = document.getElementById('phone').value;
+
+        if (!amount || amount < 1) {
+            show('fail', 'Invalid Amount', '<p>Please enter amount ≥ ₹1</p>');
+            return;
+        }
+
+        setLoading(true);
+        document.getElementById('result').className = 'result';
+
+        try {
+            const orderRes = await fetch('/api/create-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: amount, receipt: 'rcpt_' + Date.now() })
+            });
+
+            const orderData = await orderRes.json();
+            if (!orderData.success) throw new Error(orderData.error || 'Order failed');
+
+            const options = {
+                key: 'rzp_test_Su0cy3bLgdqBjN',
+                amount: orderData.amount,
+                currency: orderData.currency,
+                name: 'Test Store',
+                description: 'Test Payment',
+                image: 'https://razorpay.com/assets/razorpay-glyph.svg',
+                order_id: orderData.orderId,
+
+                handler: async function(response) {
+                    const verifyRes = await fetch('/api/verify-payment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature,
+                            amount: amount,
+                            currency: orderData.currency,
+                            customer: { name, email, phone }
+                        })
+                    });
+
+                    const verifyData = await verifyRes.json();
+
+                    if (verifyData.success) {
+                        setLoading(false);
+                        show('ok', 'Payment Successful!',
+                            '<p><strong>Payment ID:</strong> ' + response.razorpay_payment_id + '</p>' +
+                            '<p><strong>Order ID:</strong> ' + response.razorpay_order_id + '</p>' +
+                            '<p><strong>Signature:</strong> ✓ Verified</p>' +
+                            '<p><strong>Receipt:</strong> Sent to ' + email + '</p>' +
+                            '<p style="margin-top:10px;"><a href="history.html" style="color:#667eea;">View History →</a></p>'
+                        );
+                    } else {
+                        throw new Error(verifyData.message || 'Verification failed');
+                    }
+                },
+
+                prefill: { name: name, email: email, contact: phone },
+                notes: { address: 'Test Address', method: selectedMethod },
+                theme: { color: '#667eea' },
+
+                modal: {
+                    ondismiss: function() {
+                        setLoading(false);
+                        show('fail', 'Payment Cancelled', '<p>You closed the payment window.</p>');
+                    }
+                }
+            };
+
+            const rzp = new Razorpay(options);
+
+            rzp.on('payment.failed', function(response) {
+                setLoading(false);
+                show('fail', 'Payment Failed',
+                    '<p><strong>Error:</strong> ' + response.error.description + '</p>' +
+                    '<p><strong>Reason:</strong> ' + (response.error.reason || 'Unknown') + '</p>'
+                );
+            });
+
+            rzp.open();
+
+        } catch (err) {
+            setLoading(false);
+            show('fail', 'Error', '<p>' + err.message + '</p>');
+        }
+    }
+
+    async function logout() {
+        await fetch('/api/logout', { method: 'POST' });
+        window.location.href = '/';
+    }
+</script>
+
+</body>
+</html>
